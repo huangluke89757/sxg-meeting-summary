@@ -1,0 +1,211 @@
+{
+  "schema_version": "1",
+  "capabilities": [
+    "extract-materials",
+    "build-minutes",
+    "verify-format"
+  ],
+  "dependencies": [
+    {
+      "id": "python-runtime",
+      "type": "runtime",
+      "required": true,
+      "auth_type": "none",
+      "capabilities": [
+        "extract-materials",
+        "build-minutes",
+        "verify-format"
+      ],
+      "checks": [
+        {
+          "id": "python-version",
+          "type": "python",
+          "required": true,
+          "min_version": "3.10"
+        }
+      ],
+      "setup": {
+        "official_home_url": "https://www.python.org/",
+        "official_docs_url": "https://docs.python.org/3/",
+        "download_url": "https://www.python.org/downloads/",
+        "steps": [
+          "打开 https://www.python.org/downloads/ 下载 3.10 及以上版本",
+          "安装时勾选 Add python.exe to PATH",
+          "运行 python --version 确认版本号"
+        ],
+        "verify": "python --version",
+        "security": "不使用任何凭据；建议在系统盘以外的目录创建虚拟环境隔离安装",
+        "verified_at": "2026-10-08",
+        "applies_to_version": "3.10 及以上"
+      },
+      "degradation": [
+        {
+          "capability": "extract-materials",
+          "trigger": "Python 解释器不可用",
+          "fallback": "请用户把纪要和原文另存为 TXT 后手工提供文本",
+          "user_input": "另存的 TXT 文件",
+          "limitations": "不能自动解析 PDF 和 DOCX",
+          "evidence_label": "未验证",
+          "recovery": "安装 Python 3.10 以上后重跑",
+          "stop_condition": "必须解析二进制材料且无可用解释器"
+        },
+        {
+          "capability": "build-minutes",
+          "trigger": "Python 版本低于 3.10 或解释器不可用",
+          "fallback": "只输出 spec.json 和纯文本内容，标注文件未生成",
+          "user_input": "无",
+          "limitations": "不产生 docx，格式无从保证",
+          "evidence_label": "未验证",
+          "recovery": "安装 3.10 以上 Python 后重跑 check_environment.py",
+          "stop_condition": "用户必须当场拿到 docx 且无法提供可用解释器"
+        },
+        {
+          "capability": "verify-format",
+          "trigger": "Python 解释器不可用",
+          "fallback": "只做静态检查并标记未完成运行验证",
+          "user_input": "无",
+          "limitations": "不得给出校验通过结论",
+          "evidence_label": "未验证",
+          "recovery": "解释器恢复后重跑 verify_docx.py",
+          "stop_condition": "需要正式验收结论"
+        }
+      ]
+    },
+    {
+      "id": "python-docx",
+      "type": "local-tool",
+      "required": true,
+      "auth_type": "none",
+      "capabilities": [
+        "build-minutes",
+        "verify-format"
+      ],
+      "checks": [
+        {
+          "id": "python-docx-runtime",
+          "type": "python_import",
+          "required": true,
+          "target": "docx"
+        }
+      ],
+      "setup": {
+        "official_home_url": "https://github.com/python-openxml/python-docx",
+        "official_docs_url": "https://python-docx.readthedocs.io/en/latest/",
+        "steps": [
+          "在目标虚拟环境执行 python -m pip install python-docx",
+          "执行 python -c \"import docx\" 确认导入成功"
+        ],
+        "verify": "python -c \"import docx\"",
+        "security": "不使用任何凭据；只从 PyPI 官方源安装",
+        "verified_at": "2026-10-08",
+        "applies_to_version": "1.x"
+      },
+      "degradation": [
+        {
+          "capability": "build-minutes",
+          "trigger": "python -c \"import docx\" 失败",
+          "fallback": "输出 spec.json 与内容文本，明确标注 docx 未生成",
+          "user_input": "无",
+          "limitations": "没有格式化产物",
+          "evidence_label": "已验证",
+          "recovery": "用与运行脚本相同的解释器执行 python -m pip install python-docx",
+          "stop_condition": "用户要求立即交付 docx 且安装不可行"
+        },
+        {
+          "capability": "verify-format",
+          "trigger": "python-docx 缺失导致无法打开文档",
+          "fallback": "只做静态检查并标记未完成运行验证",
+          "user_input": "无",
+          "limitations": "格式一致性无法确认",
+          "evidence_label": "已验证",
+          "recovery": "安装 python-docx 后重跑 verify_docx.py",
+          "stop_condition": "需要正式验收结论"
+        }
+      ]
+    },
+    {
+      "id": "pdf-extractor",
+      "type": "local-tool",
+      "required": false,
+      "auth_type": "none",
+      "capabilities": [
+        "extract-materials"
+      ],
+      "checks": [
+        {
+          "id": "pdf-engine-runtime",
+          "type": "python",
+          "required": false,
+          "min_version": "3.10"
+        }
+      ],
+      "setup": {
+        "official_home_url": "https://github.com/jsvine/pdfplumber",
+        "official_docs_url": "https://github.com/jsvine/pdfplumber#readme",
+        "steps": [
+          "执行 python -m pip install pdfplumber",
+          "备用引擎：python -m pip install PyPDF2 或 python -m pip install pymupdf",
+          "执行 python -c \"import pdfplumber\" 确认"
+        ],
+        "verify": "python -c \"import pdfplumber\"",
+        "security": "不使用任何凭据；只从 PyPI 官方源安装",
+        "verified_at": "2026-10-08",
+        "applies_to_version": "pdfplumber 0.11 / PyPDF2 3.0 / pymupdf 1.28"
+      },
+      "degradation": [
+        {
+          "capability": "extract-materials",
+          "trigger": "pdfplumber、PyPDF2、pymupdf 均不可导入",
+          "fallback": "请用户把 PDF 另存为 TXT 或 DOCX 后重新提取",
+          "user_input": "另存得到的 TXT 或 DOCX 文件",
+          "limitations": "扫描件 PDF 无文本层时三种方式都取不到内容，需先 OCR",
+          "evidence_label": "已验证",
+          "recovery": "安装任一引擎后重跑 extract_input.py",
+          "stop_condition": "材料是扫描件且用户无法提供带文本层的文件"
+        }
+      ]
+    }
+  ],
+  "functional_degradations": [
+    {
+      "capability": "extract-materials",
+      "trigger": "PDF 无文本层或三个引擎都不可用",
+      "fallback": "改用 TXT 或 DOCX 输入，extract_input.py 原生支持",
+      "user_input": "另存的 TXT 或 DOCX 文件",
+      "limitations": "扫描件需先 OCR，未 OCR 时内容不可信",
+      "evidence_label": "部分验证",
+      "recovery": "提供带文本层的文件或安装 PDF 引擎",
+      "stop_condition": "无法取得任何可读文本"
+    },
+    {
+      "capability": "build-minutes",
+      "trigger": "输出路径已存在且 spec 未声明 overwrite",
+      "fallback": "脚本退出码 3 并提示，改用新文件名或请用户确认覆盖",
+      "user_input": "是否覆盖的明确确认",
+      "limitations": "未确认前不产生文件",
+      "evidence_label": "已验证",
+      "recovery": "改名或在 spec 中设置 overwrite 为 true",
+      "stop_condition": "用户拒绝覆盖又不提供新文件名"
+    },
+    {
+      "capability": "verify-format",
+      "trigger": "生成的 docx 无法被 python-docx 打开",
+      "fallback": "只做静态检查并在报告中标记未完成运行验证",
+      "user_input": "无",
+      "limitations": "不得给出校验通过的结论",
+      "evidence_label": "未验证",
+      "recovery": "修复文件后重跑 verify_docx.py",
+      "stop_condition": "需要正式验收结论而校验无法执行"
+    },
+    {
+      "capability": "extract-materials",
+      "trigger": "原文过长导致上下文超限",
+      "fallback": "用 --max-chars 分段读取，优先保留开头和结尾",
+      "user_input": "无",
+      "limitations": "中段内容可能缺失，行动项需人工复核",
+      "evidence_label": "已验证",
+      "recovery": "分段读取后交叉核对行动项数量",
+      "stop_condition": "关键决策集中在被截断的中段且无法分段取回"
+    }
+  ]
+}
